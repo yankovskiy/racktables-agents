@@ -1,0 +1,39 @@
+#!/bin/bash
+
+FILE=$1
+
+# Имя сервера в стойке
+function common_name() {
+
+}
+
+# Отображаемое имя
+function visible_name() {
+
+}
+
+# Процессора
+function proc() {
+
+}
+
+# Объем памяти
+function mem() {
+
+}
+
+# Сетевые адреса и IP-адреса
+function ifs() {
+
+}
+
+# Физические сетевые порты с их мак-адресами
+function eth() {
+
+}
+
+# Оптические порты с их WWN
+function fc() {
+
+}
+

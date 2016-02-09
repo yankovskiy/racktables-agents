@@ -1,0 +1,82 @@
+#!/bin/bash
+
+FILE=$1
+MTYPE=$(uname -m)
+
+# Удаление лишних пробелов
+function trim() {
+    str=($1)
+    echo ${str[@]}
+}
+
+# Имя сервера в стойке
+function common_name() {
+    echo "common_name|$(hostname)"
+}
+
+# Отображаемое имя
+function visible_name() {
+    echo "visible_name|$(hostname)"
+}
+
+# Процессора
+function proc() {
+    proc="unknown"
+    if test $MTYPE = "sun4u"
+    then
+        proc=$(psrinfo -pv | grep clock | awk '{print $1}' | head -1)
+    elif test $MTYPE = "i86pc"
+    then
+	proc=$(psrinfo -pv| grep "Intel(r)")
+	proc=$(trim "$proc")
+    fi
+
+    count=$(psrinfo -p)
+    clock=$(psrinfo -v | grep MHz | head -1 | awk '{print $6}')
+
+    echo "proc|$proc|$count|$clock"
+}
+
+# Объем памяти
+function mem() {
+    mem=$(prtconf | grep "Memory size" | awk '{print $3}')
+    echo "mem|$mem"
+}
+
+# Сетевые интерфейсы и IP-адреса
+function ifs() {
+    lst=$(netstat -i| grep -v loopback | grep -v "Net/Dest" | awk '{print $1}')
+    for i in $lst
+    do 
+	if test ! -z $i
+	then
+		addr=$(ifconfig $i | grep "inet" | awk '{print $2}')
+		echo "if|$i|$addr"
+	fi
+    done
+}
+
+# Физические сетевые порты с их мак-адресами
+function eth() {
+    lst=$(netstat -i| grep -v loopback | grep -v "Net/Dest" | awk '{print $1}')
+    for i in $lst
+    do 
+        if test ! -z $i
+        then
+                addr=$(ifconfig $i | grep "ether" | awk '{print $2}' | awk -F: '{printf("%02s:%02s:%02s:%02s:%02s:%02s",$1,$2,$3,$4,$5,$6)}')
+                echo "eth|$i|$addr"
+        fi
+    done
+}
+
+
+# Оптические порты с их WWN
+function fc() {
+	x=0
+	for i in $(fcinfo hba-port | grep "HBA Port WWN" | awk '{print $4}' | sed -e s/0x// -e 's/../&:/g' -e s/:$//)
+	do
+	    echo "fc|fc$x|$i"
+	    x=$((x + 1))
+	done
+}
+

@@ -1,0 +1,73 @@
+#!/bin/bash
+
+FILE=$1
+# Удаление лишних пробелов
+function trim() {
+    str=($1)
+    echo ${str[@]}
+}
+
+# Имя сервера в стойке
+function common_name() {
+    echo "common_name|$(hostname)"
+}
+
+# Отображаемое имя
+function visible_name() {
+    echo "visible_name|$(hostname)"
+}
+
+# Процессора
+function proc() {
+    proc=$(grep "model name" /proc/cpuinfo | head -1 | awk -F: '{print $2}' | awk -F@ '{print $1}')
+    # Удаление лишних пробелов
+    proc=$(trim "$proc")
+    
+    clock=$(grep "cpu MHz" /proc/cpuinfo | head -1 | awk -F: '{print $2}')
+    # To int
+    clock=${clock%.*}
+    clock=$(trim "$clock")
+
+    count=$(grep "physical id" /proc/cpuinfo | uniq | wc -l)
+    echo "proc|$proc|$count|$clock"
+}
+
+# Объем памяти
+function mem() {
+    mem=$(free -m | grep Mem | awk '{print $2}')
+    echo "mem|$mem"
+}
+
+# Сетевые интерфейсы и IP-адреса
+function ifs() {
+    lst=$(netstat -i | grep BMRU | awk '{print $1'})
+    for i in $lst
+    do 
+	addr=$(/sbin/ifconfig $i | grep "inet addr" | awk '{print $2}' | awk -F: '{print $2}')
+	echo "if|$i|$addr"
+    done
+}
+
+# Физические сетевые порты с их мак-адресами
+function eth() {
+    lst=$(netstat -i | grep BMRU | awk '{print $1'})
+    for i in $lst
+    do 
+	addr=$(/sbin/ifconfig $i | grep "HWaddr" | awk '{print $5}')
+	echo "eth|$i|$addr"
+    done
+}
+
+# Оптические порты с их WWN
+function fc() {
+    if test -d /sys/class/fc_host
+    then
+	x=0
+	for i in $(cat /sys/class/fc_host/host*/port_name | sed -e s/0x// -e 's/../&:/g' -e s/:$//)
+	do
+	    echo "fc|fc$x|$i"
+	    x=$((x + 1))
+	done
+    fi
+}
+
